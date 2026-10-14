@@ -8,10 +8,6 @@ export async function getAcademyContext() {
 
   if (error || !user) redirect("/auth/login");
 
-  if (user.email?.toLowerCase() === "imrankhanshahaniofficial@gmail.com") {
-    await supabase.rpc("bootstrap_initial_super_admin");
-  }
-
   let role = "student";
   let fullName = "";
 
