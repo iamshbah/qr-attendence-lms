@@ -8,17 +8,25 @@ export async function getAcademyContext() {
 
   if (error || !user) redirect("/auth/login");
 
-  const { data: profile } = await supabase
+  let role = "student";
+  let fullName = "";
+
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (!profileError && profile) {
+    role = profile.role ?? "student";
+    fullName = profile.full_name ?? "";
+  }
+
   return {
     supabase,
     user,
-    role: profile?.role ?? "student",
-    fullName: profile?.full_name ?? "",
+    role,
+    fullName,
   };
 }
 

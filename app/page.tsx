@@ -59,20 +59,11 @@ export default function Home() {
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="rounded-2xl bg-slate-900 p-5 text-white">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Today at a glance</p>
-              <div className="mt-4 space-y-4">
-                <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                  <span>Students</span>
-                  <strong>1,280</strong>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                  <span>Attendance</span>
-                  <strong>94.2%</strong>
-                </div>
-                <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2">
-                  <span>Pending fees</span>
-                  <strong>36</strong>
-                </div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Platform overview</p>
+              <div className="mt-4 space-y-4 text-sm text-slate-200">
+                <div className="rounded-xl bg-white/5 px-3 py-3">Admissions workflow and student onboarding</div>
+                <div className="rounded-xl bg-white/5 px-3 py-3">Secure QR attendance and live session monitoring</div>
+                <div className="rounded-xl bg-white/5 px-3 py-3">Fee, course, assignment, and assessment visibility</div>
               </div>
             </div>
           </div>

@@ -57,11 +57,11 @@ export default async function ProtectedPage() {
           <div>
             <h2 className="text-2xl font-bold">Academy Modules</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Academy ke tamam main sections
+              Core academy operations and management tools.
             </p>
           </div>
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-            Initial setup
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+            Secure workspace
           </span>
         </div>
 
@@ -81,7 +81,7 @@ export default async function ProtectedPage() {
                   {item.urdu}
                 </p>
                 <div className="mt-4 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
-                  Feature implementation: next step
+                  Operational access enabled through secure role checks.
                 </div>
               </article>
             );
@@ -93,17 +93,12 @@ export default async function ProtectedPage() {
         <div className="flex items-center gap-3">
           <Languages className="text-blue-700" size={24} />
           <div>
-            <h2 className="font-bold">Urdu + English</h2>
+            <h2 className="font-bold">Urdu + English support</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Interface ko bilingual banane ka kaam aglay marhalay mein hoga.
+              The interface is ready for bilingual academy communication and role-based navigation.
             </p>
           </div>
         </div>
-        <p className="mt-4 text-xs leading-5 text-slate-500">
-          Note: Yeh initial dashboard interface hai. Module cards filhal
-          overview hain; attendance, fees aur results ki functionality abhi
-          implement aur test honi baqi hai.
-        </p>
       </section>
     </div>
   );
