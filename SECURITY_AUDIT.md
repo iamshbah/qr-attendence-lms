@@ -46,7 +46,7 @@ These functions use a fixed empty search_path and are intended to enforce author
 
 - **Super Admin account:** the designated account was not present at the time of checking; no Super Admin profile exists yet.
 - **Failed login history:** not implemented as a trustworthy audit event. Use supported Supabase Auth logs/hooks or a secure log drain. Do not trust a browser-generated event as proof of a failed login.
-- **MFA:** mandatory Super Admin MFA/AAL enforcement has not yet been implemented and tested.
+- **MFA:** a TOTP enrollment/verification route and server-side AAL2 requirement for Super Admin operations have been implemented in code, but the end-to-end flow has not yet been built or tested against a real Super Admin account.
 - **BAC/IDOR:** RLS is enabled, but every endpoint/object-ownership policy has not yet been covered by negative tests with separate student, teacher, admin, and Super Admin identities.
 - **Build/deployment:** the latest verified READY Vercel deployment still references an earlier commit. The latest GitHub changes must be built and tested before they can be considered live.
 - **Migration history:** the repository did not previously contain the full set of migrations for the existing database. Recent hardening migrations are now tracked, but the complete database bootstrap/migration history still needs reconciliation before claiming reproducible fresh-project setup. The auth-trigger migration is also represented by a new later local migration file and should be reconciled with the remote migration version before running a CLI push.
