@@ -31,7 +31,7 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const { role } = await getAcademyContext();
-  const links = role === "admin" ? adminLinks : role === "teacher" ? teacherLinks : studentLinks;
+  const links = role === "admin" || role === "super_admin" ? adminLinks : role === "teacher" ? teacherLinks : studentLinks;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
