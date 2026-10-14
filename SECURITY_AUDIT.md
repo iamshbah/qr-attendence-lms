@@ -17,7 +17,7 @@ The application is **not yet fully verified for production security**. No authen
 - anon and authenticated no longer have TRUNCATE, TRIGGER, or REFERENCES table privileges in the public schema.
 - public.audit_logs is readable only by authenticated callers whose profile role is exactly super_admin; anonymous SELECT was revoked. Direct writes by anon and authenticated were revoked.
 - A trigger exists on auth.users.last_sign_in_at changes to record successful sign-in events into public.audit_logs. This is intended to capture successful sign-ins when Supabase updates that field; it does not record failed sign-ins.
-- public.bootstrap_initial_super_admin() checks auth.uid(), the exact designated email, and email_confirmed_at before assigning the initial Super Admin role.
+- A private auth.users trigger promotes only the exact designated email after email verification, creates/updates the matching profile safely, and removes the Super Admin role if that identity changes its email away from the designated address. The former public bootstrap RPC has been dropped.
 - public.super_admin_list_users() and public.super_admin_set_user_role() include explicit database-side Super Admin checks. Role changes cannot assign super_admin, change the caller's own role, or change the designated identity through the role-management RPC.
 - The exposed QR attendance RPC is not executable by anon; it is executable only by authenticated callers and must continue validating the session token, user, class, expiry, and duplicate attendance.
 
@@ -25,7 +25,7 @@ The application is **not yet fully verified for production security**. No authen
 
 Supabase Security Advisor still reports:
 1. auth_leaked_password_protection — **Warning**: leaked-password protection is disabled. Enable it in Supabase Dashboard → Authentication → Password Security.
-2. authenticated_security_definer_function_executable — **Warning** for four intentionally exposed functions:
+2. authenticated_security_definer_function_executable — **Warning** for three intentionally exposed functions:
    - public.bootstrap_initial_super_admin()
    - public.mark_attendance_with_qr(uuid, text)
    - public.super_admin_list_users()
@@ -49,7 +49,7 @@ These functions use a fixed empty search_path and are intended to enforce author
 - **MFA:** mandatory Super Admin MFA/AAL enforcement has not yet been implemented and tested.
 - **BAC/IDOR:** RLS is enabled, but every endpoint/object-ownership policy has not yet been covered by negative tests with separate student, teacher, admin, and Super Admin identities.
 - **Build/deployment:** the latest verified READY Vercel deployment still references an earlier commit. The latest GitHub changes must be built and tested before they can be considered live.
-- **Migration history:** the repository did not previously contain the full set of migrations for the existing database. Recent hardening migrations are now tracked, but the complete database bootstrap/migration history still needs reconciliation before claiming reproducible fresh-project setup.
+- **Migration history:** the repository did not previously contain the full set of migrations for the existing database. Recent hardening migrations are now tracked, but the complete database bootstrap/migration history still needs reconciliation before claiming reproducible fresh-project setup. The auth-trigger migration is also represented by a new later local migration file and should be reconciled with the remote migration version before running a CLI push.
 - **Email:** Resend has three draft templates but no configured sending domain; production email sending is not ready.
 - **Figma:** the existing design file was inspected, but the Starter-plan MCP call limit prevented further edits in this run.
 
