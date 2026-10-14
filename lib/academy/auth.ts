@@ -32,7 +32,7 @@ export async function getAcademyContext() {
 
 export async function requireAcademyRole(allowed: string[]) {
   const context = await getAcademyContext();
-  if (!allowed.includes(context.role)) {
+  if (context.role !== "super_admin" && !allowed.includes(context.role)) {
     redirect("/protected?error=forbidden");
   }
   return context;
