@@ -1,6 +1,8 @@
 ﻿import { requireAcademyRole } from "@/lib/academy/auth";
 import { createAttendanceSession, markManualAttendance } from "@/lib/academy/actions";
 import { cookies } from "next/headers";
+import Image from "next/image";
+import { toDataURL } from "qrcode";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +30,7 @@ export default async function AttendancePage({
       const checkInUrl = new URL("/protected/attendance/check-in", siteUrl);
       checkInUrl.searchParams.set("session", selectedSession.id);
       checkInUrl.hash = `token=${encodeURIComponent(token)}`;
-      const QRCode = require("qrcode") as {
-        toDataURL: (text: string, options: { width: number; margin: number; errorCorrectionLevel: string }) => Promise<string>;
-      };
-      qrDataUrl = await QRCode.toDataURL(checkInUrl.toString(), {
+      qrDataUrl = await toDataURL(checkInUrl.toString(), {
         width: 320,
         margin: 2,
         errorCorrectionLevel: "M",
@@ -46,7 +45,7 @@ export default async function AttendancePage({
     {params.session && !qrDataUrl && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">QR token is not available in this browser session, or the session has expired. Create a new attendance session to generate a fresh QR code.</p>}
     {qrDataUrl && selectedSession && (
       <section className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
-        <img src={qrDataUrl} alt="Short-lived QR attendance check-in code" className="h-56 w-56 self-center rounded-lg border border-slate-200 p-2" />
+        <Image src={qrDataUrl} alt="Short-lived QR attendance check-in code" width={224} height={224} unoptimized className="h-56 w-56 self-center rounded-lg border border-slate-200 p-2" />
         <div>
           <h2 className="text-xl font-bold">QR check-in ready</h2>
           <p className="mt-2 text-sm text-slate-600">Students in the assigned class can scan this code with their signed-in account. The token is short-lived and is not stored in the database in plain text.</p>
