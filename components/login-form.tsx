@@ -62,12 +62,12 @@ export function LoginForm({
             : error.message,
         );
       }
-      const { error: bootstrapError } = await supabase.rpc("bootstrap_initial_super_admin");
+      const { data: bootstrapResult, error: bootstrapError } = await supabase.rpc("bootstrap_initial_super_admin");
       if (
         trimmedEmail.toLowerCase() === "imrankhanshahaniofficial@gmail.com" &&
-        bootstrapError
+        (bootstrapError || bootstrapResult !== true)
       ) {
-        throw new Error("Super Admin setup could not be completed. Please try again or contact the system owner.");
+        throw new Error("Super Admin setup could not be completed. Confirm that your email is verified and the profile exists, then try again.");
       }
       router.push("/protected");
     } catch (submissionError: unknown) {
