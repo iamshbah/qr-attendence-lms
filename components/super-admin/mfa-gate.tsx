@@ -71,12 +71,12 @@ export function SuperAdminMfaGate({ nextPath }: { nextPath: string }) {
         factorType: "totp",
         friendlyName: "Super Admin authenticator",
       });
-      if (enrollmentError || !enrollment?.totp?.id) {
+      if (enrollmentError || !enrollment?.id || !enrollment?.totp?.qr_code) {
         if (!cancelled) setError("Unable to start authenticator setup. Check Supabase MFA settings and try again.");
         return;
       }
       if (!cancelled) {
-        setFactorId(enrollment.totp.id);
+        setFactorId(enrollment.id);
         setQrCode(enrollment.totp.qr_code);
         setSecret(enrollment.totp.secret);
         setMode("enroll");
