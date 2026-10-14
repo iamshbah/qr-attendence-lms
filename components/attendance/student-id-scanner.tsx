@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { markAttendanceByStudentCode } from "@/app/protected/attendance/scan-actions";
 
@@ -14,6 +14,14 @@ export function StudentIdScanner({ sessions }: { sessions: SessionOption[] }) {
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState("Select an active class session, then start the camera.");
   const [tone, setTone] = useState<"neutral" | "success" | "error">("neutral");
+
+  useEffect(() => () => {
+    const scanner = scannerRef.current;
+    scannerRef.current = null;
+    if (scanner?.isScanning) {
+      void scanner.stop().then(() => scanner.clear()).catch(() => undefined);
+    }
+  }, []);
 
   async function stopCamera() {
     const scanner = scannerRef.current;
@@ -47,10 +55,16 @@ export function StudentIdScanner({ sessions }: { sessions: SessionOption[] }) {
         async (decodedText) => {
           if (busyRef.current) return;
           busyRef.current = true;
-          const result = await markAttendanceByStudentCode(sessionId, decodedText);
-          setTone(result.ok ? "success" : "error");
-          setMessage(result.message);
-          window.setTimeout(() => { busyRef.current = false; }, result.ok ? 1000 : 1400);
+          try {
+            const result = await markAttendanceByStudentCode(sessionId, decodedText);
+            setTone(result.ok ? "success" : "error");
+            setMessage(result.message);
+          } catch {
+            setTone("error");
+            setMessage("Attendance request failed. Check the connection and try scanning again.");
+          } finally {
+            window.setTimeout(() => { busyRef.current = false; }, 1000);
+          }
         },
         () => undefined,
       );

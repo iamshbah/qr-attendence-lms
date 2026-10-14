@@ -2,6 +2,7 @@ import { toDataURL } from "qrcode";
 import Image from "next/image";
 import { requireAcademyRole } from "@/lib/academy/auth";
 import { PrintButton } from "@/components/id-cards/print-button";
+import styles from "./id-cards.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function StudentIdCardsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="no-print flex flex-wrap items-end justify-between gap-3">
+      <header className={styles.noPrint + " flex flex-wrap items-end justify-between gap-3"}>
         <div>
           <h1 className="text-3xl font-bold">{role === "student" ? "My Student ID Card" : "Student ID Card Generator"}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Generate printable student cards with QR codes for the teacher's fast attendance scanner. The QR contains the student code only.</p>
@@ -40,9 +41,9 @@ export default async function StudentIdCardsPage() {
         </section>
       )}
       {cards.length > 0 && (
-        <section className="id-card-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className={styles.grid}>
           {cards.map((student) => (
-            <article key={student.id} className="id-card relative flex h-56 w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm print:break-inside-avoid print:shadow-none print:w-[85.6mm] print:h-[54mm]">
+            <article key={student.id} className={styles.card + " relative flex overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm"}>
               <div className="flex w-2/3 flex-col justify-between p-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-800">Digitalice Academy</p>
@@ -64,7 +65,7 @@ export default async function StudentIdCardsPage() {
           ))}
         </section>
       )}
-      <p className="no-print text-xs leading-5 text-slate-500">Security note: a static card QR can be photographed or copied. The scanner requires an authenticated teacher/admin and an active session for the student's own class; staff should visually verify the person holding the card.</p>
+      <p className={styles.noPrint + " text-xs leading-5 text-slate-500"}>Security note: a static card QR can be photographed or copied. The scanner requires an authenticated teacher/admin and an active session for the student's own class; staff should visually verify the person holding the card.</p>
     </div>
   );
 }
