@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireAcademyRole } from "@/lib/academy/auth";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +26,17 @@ export default async function MyLearningPage() {
     supabase.from("fee_records").select("id,amount,fee_month,due_date,paid_at,receipt_number").eq("student_id", student.id).order("fee_month", { ascending: false }).limit(12),
   ]);
   const courses = courseRows ?? [];
+  const [{ data: assignmentRows }, { data: lessonRows }] = courses.length
+    ? await Promise.all([
+        supabase.from("assignments").select("id,title,instructions,due_at,course_id").eq("published", true).in("course_id", courses.map((course) => course.id)).order("due_at", { ascending: true }),
+        supabase.from("lessons").select("id,title,content,video_url,file_path,course_id,position").eq("published", true).in("course_id", courses.map((course) => course.id)).order("position", { ascending: true }),
+      ])
+    : [{ data: [] }, { data: [] }];
   const attendance = attendanceRows ?? [];
   const results = resultRows ?? [];
   const fees = feeRows ?? [];
+  const assignments = assignmentRows ?? [];
+  const lessons = lessonRows ?? [];
   const presentCount = attendance.filter((r) => r.status === "present" || r.status === "late").length;
 
   return (
@@ -37,13 +44,13 @@ export default async function MyLearningPage() {
       <header className="rounded-3xl bg-gradient-to-r from-blue-950 via-blue-800 to-indigo-700 p-7 text-white shadow-lg">
         <p className="text-sm text-blue-100">Student portal · {student.student_code}</p>
         <h1 className="mt-2 text-3xl font-bold">Assalam-o-Alaikum, {student.full_name}</h1>
-        <p className="mt-2 text-blue-100">Your courses, attendance, results and fee records in one place.</p>
+        <p className="mt-2 text-blue-100">Your courses, lessons, assignments, attendance, results and fee records in one place.</p>
       </header>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Published courses", String(courses.length)],
           ["Recent attendance", String(attendance.length)],
-          ["Results available", String(results.length)],
+          ["Assignments", String(assignments.length)],
           ["Outstanding fees", String(fees.filter((f) => !f.paid_at).length)],
         ].map(([label, value]) => (
           <article key={label} className="rounded-2xl border bg-white p-5 shadow-sm">
@@ -53,11 +60,29 @@ export default async function MyLearningPage() {
       </section>
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border bg-white p-5">
-          <h2 className="text-xl font-bold">My courses</h2>
+          <h2 className="text-xl font-bold">My courses & lessons</h2>
           <div className="mt-4 space-y-3">
-            {courses.length ? courses.map((course) => <article key={course.id} className="rounded-xl bg-slate-50 p-4"><h3 className="font-semibold">{course.title}</h3><p className="mt-1 text-sm text-slate-600">{course.description || "Course material will be shared by your teacher."}</p></article>) : <p className="mt-3 text-sm text-slate-500">No published courses are assigned to your class yet.</p>}
+            {courses.length ? courses.map((course) => (
+              <article key={course.id} className="rounded-xl bg-slate-50 p-4">
+                <h3 className="font-semibold">{course.title}</h3>
+                <p className="mt-1 text-sm text-slate-600">{course.description || "Course material shared by your teacher."}</p>
+                {lessons.filter((lesson) => lesson.course_id === course.id).map((lesson) => (
+                  <div key={lesson.id} className="mt-3 border-t border-slate-200 pt-3">
+                    <p className="font-medium">{lesson.title}</p>
+                    {lesson.content && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{lesson.content}</p>}
+                    {lesson.video_url && <a className="mt-2 inline-block text-sm font-semibold text-blue-800 underline" href={lesson.video_url} target="_blank" rel="noreferrer">Open lesson video</a>}
+                    {lesson.file_path && <p className="mt-1 break-all text-xs text-slate-500">Material file: {lesson.file_path}</p>}
+                  </div>
+                ))}
+              </article>
+            )) : <p className="mt-3 text-sm text-slate-500">No published courses are assigned to your class yet.</p>}
           </div>
-          <Link className="mt-4 inline-block text-sm font-semibold text-blue-800 underline" href="/protected/assignments">View assignments</Link>
+        </div>
+        <div className="rounded-2xl border bg-white p-5">
+          <h2 className="text-xl font-bold">My assignments</h2>
+          <div className="mt-4 space-y-3">
+            {assignments.length ? assignments.map((assignment) => <article key={assignment.id} className="rounded-xl border p-4"><h3 className="font-semibold">{assignment.title}</h3><p className="mt-1 text-sm text-slate-600">{assignment.instructions || "Follow the instructions given by your teacher."}</p><p className="mt-2 text-xs text-slate-500">Due: {assignment.due_at ? new Date(assignment.due_at).toLocaleString() : "Not specified"}</p></article>) : <p className="text-sm text-slate-500">No published assignments are available yet.</p>}
+          </div>
         </div>
         <div className="rounded-2xl border bg-white p-5">
           <h2 className="text-xl font-bold">Attendance</h2>
@@ -73,10 +98,10 @@ export default async function MyLearningPage() {
             {results.length ? results.map((result) => <div key={result.id} className="rounded-lg border p-3"><p className="font-semibold">{result.marks_obtained} marks</p><p className="mt-1 text-sm text-slate-500">{result.remarks || "No teacher remarks."}</p></div>) : <p className="text-sm text-slate-500">Published results will appear here when available.</p>}
           </div>
         </div>
-        <div className="rounded-2xl border bg-white p-5">
+        <div className="rounded-2xl border bg-white p-5 lg:col-span-2">
           <h2 className="text-xl font-bold">Fees & receipts</h2>
-          <div className="mt-4 space-y-2">
-            {fees.length ? fees.map((fee) => <div key={fee.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"><div><p className="font-semibold">{Number(fee.amount).toLocaleString()}</p><p className="text-slate-500">{String(fee.fee_month).slice(0, 7)} · Due {fee.due_date}</p></div><span className={fee.paid_at ? "text-emerald-700" : "text-amber-700"}>{fee.paid_at ? "Paid" : "Due"}</span></div>) : <p className="text-sm text-slate-500">No fee records found.</p>}
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {fees.length ? fees.map((fee) => <div key={fee.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"><div><p className="font-semibold">{Number(fee.amount).toLocaleString()}</p><p className="text-slate-500">{String(fee.fee_month).slice(0, 7)} · Due {fee.due_date}</p>{fee.receipt_number && <p className="text-xs text-slate-500">Receipt: {fee.receipt_number}</p>}</div><span className={fee.paid_at ? "text-emerald-700" : "text-amber-700"}>{fee.paid_at ? "Paid" : "Due"}</span></div>) : <p className="text-sm text-slate-500">No fee records found.</p>}
           </div>
         </div>
       </section>
