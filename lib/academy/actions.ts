@@ -46,8 +46,8 @@ export async function createAttendanceSession(form: FormData) {
   const session_date = value(form, "session_date");
   const expires_at = value(form, "expires_at");
 
-  if (!class_id || !session_date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(session_date) ||
-      !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(expires_at)) {
+  if (!class_id || !session_date || !/^\d{4}-\d{2}-\d{2}$/.test(session_date) ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(expires_at)) {
     fail("/protected/attendance", "required_fields");
   }
 
