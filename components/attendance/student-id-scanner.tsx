@@ -84,7 +84,7 @@ export function StudentIdScanner({ sessions }: { sessions: SessionOption[] }) {
         <div>
           <h2 className="text-xl font-bold">Fast student ID scanner</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-            Teacher/admin scans the student's ID card. Attendance is validated on the server against the selected live session, class assignment, student status and duplicate record.
+            Teacher/admin scans the student&apos;s ID card. Attendance is validated on the server against the selected live session, class assignment, student status and duplicate record.
           </p>
         </div>
         <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">Camera scanner</span>
