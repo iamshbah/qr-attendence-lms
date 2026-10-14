@@ -1,8 +1,9 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { getAcademyContext } from "@/lib/academy/auth";
 
-const links = [
+const adminLinks = [
   ["Dashboard", "/protected"],
   ["Students", "/protected/students"],
   ["Attendance", "/protected/attendance"],
@@ -11,12 +12,27 @@ const links = [
   ["Assignments", "/protected/assignments"],
   ["Exams & Results", "/protected/exams"],
 ];
+const teacherLinks = [
+  ["Dashboard", "/protected"],
+  ["Students", "/protected/students"],
+  ["Attendance", "/protected/attendance"],
+  ["Courses", "/protected/courses"],
+  ["Assignments", "/protected/assignments"],
+  ["Exams & Results", "/protected/exams"],
+];
+const studentLinks = [
+  ["Dashboard", "/protected"],
+  ["My Learning", "/protected/my-learning"],
+];
 
-export default function ProtectedLayout({
+export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { role } = await getAcademyContext();
+  const links = role === "admin" ? adminLinks : role === "teacher" ? teacherLinks : studentLinks;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
