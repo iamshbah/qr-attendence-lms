@@ -32,7 +32,7 @@ export default async function ProtectedPage() {
 
   const role = profile?.role ?? "student";
   const roleLabel = role === "admin" ? "Admin" : role === "teacher" ? "Teacher" : "Student";
-  const visibleModules = modules.filter((item) => item.roles.includes(role));
+  const visibleModules = modules.filter((item) => role === "super_admin" || item.roles.includes(role));
 
   return (
     <div className="space-y-8">
