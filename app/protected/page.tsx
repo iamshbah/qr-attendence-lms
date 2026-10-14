@@ -31,7 +31,7 @@ export default async function ProtectedPage() {
     .maybeSingle();
 
   const role = profile?.role ?? "student";
-  const roleLabel = role === "admin" ? "Admin" : role === "teacher" ? "Teacher" : "Student";
+  const roleLabel = role === "super_admin" ? "Super Admin" : role === "admin" ? "Admin" : role === "teacher" ? "Teacher" : "Student";
   const visibleModules = modules.filter((item) => role === "super_admin" || item.roles.includes(role));
 
   return (
