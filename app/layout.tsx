@@ -9,11 +9,28 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Academy LMS",
-  description: "Secure academy management for admissions, attendance, fees, exams, and courses.",
+  title: {
+    default: "Academy LMS | Smart Attendance & Learning",
+    template: "%s | Academy LMS",
+  },
+  description:
+    "A connected academy workspace for QR attendance, student and class management, fees, courses, assignments, and exam results.",
+  applicationName: "Academy LMS",
+  keywords: [
+    "Academy LMS",
+    "QR attendance",
+    "student management",
+    "learning management system",
+    "academy administration",
+  ],
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
-    title: "Academy LMS",
-    description: "Secure academy management for admissions, attendance, fees, exams, and courses.",
+    title: "Academy LMS | Smart Attendance & Learning",
+    description:
+      "A connected academy workspace for QR attendance, student and class management, fees, courses, assignments, and exam results.",
   },
 };
 
