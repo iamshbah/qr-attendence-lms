@@ -273,3 +273,54 @@ export async function saveResult(form: FormData) {
   if (result.error) fail("/protected/exams", "result_save_failed");
   done("/protected/exams");
 }
+
+export async function submitAssignment(form: FormData) {
+  const { supabase, user } = await requireAcademyRole(["student"]);
+  const assignment_id = value(form, "assignment_id");
+  const answer_text = value(form, "answer_text");
+
+  if (!assignment_id || !answer_text) {
+    fail("/protected/my-learning", "assignment_answer_required");
+  }
+
+  const { data: student, error: studentError } = await supabase
+    .from("students")
+    .select("id, class_id, active")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (studentError || !student || !student.active) {
+    fail("/protected/my-learning", "student_profile_not_linked");
+  }
+
+  const { data: assignment, error: assignmentError } = await supabase
+    .from("assignments")
+    .select("id, course_id, published, due_at")
+    .eq("id", assignment_id)
+    .maybeSingle();
+
+  if (assignmentError || !assignment || !assignment.published ||
+      (assignment.due_at && new Date(assignment.due_at).getTime() < Date.now())) {
+    fail("/protected/my-learning", "assignment_unavailable_or_closed");
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("submissions")
+    .select("id")
+    .eq("assignment_id", assignment_id)
+    .eq("student_id", student.id)
+    .maybeSingle();
+
+  if (existingError) fail("/protected/my-learning", "submission_check_failed");
+  if (existing) fail("/protected/my-learning", "assignment_already_submitted");
+
+  const { error } = await supabase.from("submissions").insert({
+    assignment_id,
+    student_id: student.id,
+    answer_text,
+    submitted_at: new Date().toISOString(),
+  });
+
+  if (error) fail("/protected/my-learning", "submission_save_failed");
+  done("/protected/my-learning");
+}
