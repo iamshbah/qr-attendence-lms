@@ -1,19 +1,21 @@
-﻿import { redirect } from "next/navigation";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Users, QrCode, Wallet, GraduationCap,
-  BookOpen, ClipboardList, ShieldCheck, Languages
+  BookOpen, ClipboardList, ShieldCheck, Languages, ArrowRight, Library
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const modules = [
-  { title: "Students & Admissions", urdu: "Students ka record aur naye admissions", icon: Users },
-  { title: "QR Attendance", urdu: "QR scan aur hazri ka nizam", icon: QrCode },
-  { title: "Fees & Receipts", urdu: "Fees, dues aur receipts", icon: Wallet },
-  { title: "Exams & Results", urdu: "Imtihan aur result management", icon: GraduationCap },
-  { title: "Courses & Lessons", urdu: "Online lessons, videos aur notes", icon: BookOpen },
-  { title: "Assignments & Reports", urdu: "Homework, progress aur reports", icon: ClipboardList },
+  { title: "Students & Admissions", urdu: "Students ka record aur naye admissions", icon: Users, href: "/protected/students", roles: ["admin", "teacher"] },
+  { title: "QR Attendance", urdu: "Class attendance sessions aur hazri records", icon: QrCode, href: "/protected/attendance", roles: ["admin", "teacher"] },
+  { title: "Fees & Receipts", urdu: "Fees, dues aur receipts manage karein", icon: Wallet, href: "/protected/fees", roles: ["admin"] },
+  { title: "Exams & Results", urdu: "Imtihan, marks aur result management", icon: GraduationCap, href: "/protected/exams", roles: ["admin", "teacher"] },
+  { title: "Courses & Lessons", urdu: "Online lessons, videos aur notes", icon: BookOpen, href: "/protected/courses", roles: ["admin", "teacher"] },
+  { title: "Assignments", urdu: "Homework aur coursework manage karein", icon: ClipboardList, href: "/protected/assignments", roles: ["admin", "teacher"] },
+  { title: "My Learning", urdu: "Apne courses, assignments, attendance, results aur fees dekhein", icon: Library, href: "/protected/my-learning", roles: ["student"] },
 ];
 
 export default async function ProtectedPage() {
@@ -29,9 +31,8 @@ export default async function ProtectedPage() {
     .maybeSingle();
 
   const role = profile?.role ?? "student";
-  const roleLabel =
-    role === "admin" ? "Admin" :
-    role === "teacher" ? "Teacher" : "Student";
+  const roleLabel = role === "admin" ? "Admin" : role === "teacher" ? "Teacher" : "Student";
+  const visibleModules = modules.filter((item) => item.roles.includes(role));
 
   return (
     <div className="space-y-8">
@@ -41,11 +42,14 @@ export default async function ProtectedPage() {
           Academy Management System
         </div>
         <h1 className="mt-5 text-3xl font-bold sm:text-4xl">
-          Assalam-o-Alaikum, {profile?.full_name || "Welcome"}!
+          Assalam-o-Alaikum, {profile?.full_name || user.email?.split("@")[0] || "Welcome"}!
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-          Attendance, admissions, fees, exams aur online learning —
-          sab kuch ek hi jagah.
+          {role === "admin"
+            ? "Manage admissions, staff workflows, attendance, fees, courses and exams from one place."
+            : role === "teacher"
+              ? "Manage your academy classes, attendance, courses, assignments and exam results."
+              : "Open your learning space to check courses, assignments, attendance, results and fee records."}
         </p>
         <div className="mt-6 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm">
           Account role: <span className="ml-2 font-semibold">{roleLabel}</span>
@@ -55,35 +59,34 @@ export default async function ProtectedPage() {
       <section>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-2xl font-bold">Academy Modules</h2>
+            <h2 className="text-2xl font-bold">{role === "student" ? "My Portal" : "Your Workspace"}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Core academy operations and management tools.
+              Only the tools available for your account role are shown.
             </p>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-            Secure workspace
+            Role-aware workspace
           </span>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {modules.map((item) => {
+          {visibleModules.map((item) => {
             const Icon = item.icon;
             return (
-              <article
+              <Link
                 key={item.title}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                href={item.href}
+                className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
               >
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-800">
                   <Icon size={24} />
                 </div>
                 <h3 className="font-bold text-slate-900">{item.title}</h3>
-                <p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">
-                  {item.urdu}
-                </p>
-                <div className="mt-4 border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
-                  Operational access enabled through secure role checks.
+                <p className="mt-2 min-h-10 text-sm leading-5 text-slate-500">{item.urdu}</p>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-semibold text-blue-800">
+                  <span>Open module</span><ArrowRight size={16} className="transition group-hover:translate-x-1" />
                 </div>
-              </article>
+              </Link>
             );
           })}
         </div>
@@ -95,7 +98,7 @@ export default async function ProtectedPage() {
           <div>
             <h2 className="font-bold">Urdu + English support</h2>
             <p className="mt-1 text-sm text-slate-500">
-              The interface is ready for bilingual academy communication and role-based navigation.
+              Simple bilingual guidance for students, teachers and academy administrators.
             </p>
           </div>
         </div>
