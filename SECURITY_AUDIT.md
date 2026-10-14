@@ -1,78 +1,89 @@
 # Security Audit — Academy LMS
 
-**Status:** Preliminary hardening in progress; not a zero-vulnerability certification.  
+**Status:** Hardening implemented; production verification is still in progress. This is not a zero-vulnerability certification.  
 **Last reviewed:** 2026-10-14  
 **Repository:** https://github.com/iamshbah/qr-attendence-lms
 
 ## Executive summary
 
-Recent work added a protected Super Admin security console, a server-side initial Super Admin bootstrap, database-side successful-login audit logging, and role-management RPCs. Several database permission changes were applied and checked against the live Supabase project.
+The current code includes a Super Admin security console, a private verified-email bootstrap trigger, TOTP enrollment and AAL2 checks, protected user/role management, successful-login auditing, class-scoped attendance policies, and a QR check-in flow.
 
-The application is **not yet fully verified for production security**. No authenticated end-to-end BAC/IDOR test suite or full production build has been run against the latest commit. The designated Super Admin account does not exist in Supabase yet, so the console and role-management flow cannot be validated with that identity.
+The most recent full CI run passed lint, TypeScript type-checking, and the production build. The production dependency audit reported zero vulnerabilities. The full dependency audit still reports development-tooling advisories described below. The resulting dependency lockfile was committed; the committed tree must be rechecked by CI and deployed to Vercel before it is considered live.
 
-## Confirmed checks
+The designated Super Admin account does not yet exist in Supabase, so the actual Super Admin onboarding/MFA flow has not been tested with that identity.
 
-- All 13 public tables reported by PostgreSQL have Row Level Security enabled.
+## Confirmed database checks
+
+- All 13 public tables have Row Level Security enabled; zero public tables were found with RLS disabled.
 - profiles.role has only SELECT column privilege for authenticated; no INSERT/UPDATE grant was found for the role column on anon or authenticated.
-- anon and authenticated no longer have TRUNCATE, TRIGGER, or REFERENCES table privileges in the public schema.
-- public.audit_logs is readable only by authenticated callers whose profile role is exactly super_admin; anonymous SELECT was revoked. Direct writes by anon and authenticated were revoked.
-- A trigger exists on auth.users.last_sign_in_at changes to record successful sign-in events into public.audit_logs. This is intended to capture successful sign-ins when Supabase updates that field; it does not record failed sign-ins.
-- A private auth.users trigger promotes only the exact designated email after email verification, creates/updates the matching profile safely, and removes the Super Admin role if that identity changes its email away from the designated address. The former public bootstrap RPC has been dropped.
-- public.super_admin_list_users() and public.super_admin_set_user_role() include explicit database-side Super Admin checks. Role changes cannot assign super_admin, change the caller's own role, or change the designated identity through the role-management RPC.
-- The exposed QR attendance RPC is not executable by anon; it is executable only by authenticated callers and must continue validating the session token, user, class, expiry, and duplicate attendance.
+- anon and authenticated do not have TRUNCATE, TRIGGER, or REFERENCES privileges on public tables.
+- public.audit_logs is readable only by an authenticated user whose profile role is exactly super_admin and whose JWT assurance level is aal2. Anonymous reads and direct client writes are revoked.
+- A private trigger records successful sign-ins when auth.users.last_sign_in_at changes. It does not record failed sign-ins.
+- A private auth.users trigger promotes only the exact designated email after verification, ensures a profile exists, and removes the Super Admin role if that identity changes its email away from the designated address. The former public bootstrap RPC has been dropped.
+- public.super_admin_list_users() and public.super_admin_set_user_role() require both the Super Admin database role and AAL2. Role changes cannot assign super_admin, change the caller's own role, or change the designated identity through the role-management RPC.
+- private.has_role only grants the Super Admin bypass when the JWT assurance level is aal2.
+- The QR attendance RPC is not executable by anon, uses an empty search_path, checks the actual student role, token hash, class, active/expiry state, and duplicate attendance.
+- Teacher reads and session changes are scoped to assigned classes. Attendance inserts are checked in PostgreSQL for active/unexpired sessions, active students, matching class, and an authorized actor.
 
 ## Findings fixed during this pass
 
-- **Teacher cross-class access:** the previous policies allowed teachers to read all student records, classes, attendance sessions, and attendance records. Policies now scope teacher reads and session mutations to classes assigned to that teacher.
-- **Attendance object integrity:** attendance insertion now checks in PostgreSQL that the session is active and unexpired, the student is active and belongs to the session's class, and the actor is an authorized admin or assigned teacher. Session creation is limited to a 24-hour expiry window; teacher session updates are scoped to their own assigned class.
-- **QR flow:** the teacher session action now stores only a SHA-256 token hash in the database and keeps the raw token in an HttpOnly, SameSite=Strict, expiring cookie for rendering the QR. The QR embeds the token in the URL fragment (not the initial HTTP request query); the student check-in route sends it to the validating RPC. The QR RPC now uses an empty search_path and the database has a unique constraint on (session_id, student_id) to prevent duplicate attendance.
-- These changes are **implemented but not yet end-to-end tested** with separate real student and teacher accounts. Do not treat them as fully verified until the latest build and negative authorization tests pass.
+- **BAC/IDOR in teacher attendance access:** prior policies allowed teachers to read student, class, session, and attendance data too broadly. The live policies now scope those reads and mutations to classes assigned to the teacher.
+- **Attendance integrity:** database policies now reject cross-class attendance and expired sessions, and session creation is limited to a 24-hour expiry window.
+- **QR flow:** the raw token is held in an HttpOnly, SameSite=Strict, expiring cookie for QR rendering; only its SHA-256 hash is stored in the database. The QR carries the token in the URL fragment, and the student check-in route submits it to the validating RPC.
+- **Super Admin authorization:** app routes/actions and database policies/RPCs require AAL2 for Super Admin access. The TOTP enrollment/verification UI is implemented.
+- **Browser security headers:** X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS, and a Permissions-Policy were added.
+- These changes are implemented but **have not been end-to-end tested** with separate real student, teacher, admin, and Super Admin accounts. Do not treat the authorization matrix as fully verified until those negative tests pass.
 
-## Current security-advisor findings
+## Current Supabase Security Advisor findings
 
-Supabase Security Advisor still reports:
-1. auth_leaked_password_protection — **Warning**: leaked-password protection is disabled. Enable it in Supabase Dashboard → Authentication → Password Security.
-2. authenticated_security_definer_function_executable — **Warning** for three intentionally exposed functions:
-   - public.bootstrap_initial_super_admin()
+1. **Leaked-password protection disabled:** enable it in Supabase Dashboard → Authentication → Password Security.
+2. **Three SECURITY DEFINER RPC warnings remain:**
    - public.mark_attendance_with_qr(uuid, text)
    - public.super_admin_list_users()
    - public.super_admin_set_user_role(uuid, public.app_role)
 
-These functions use a fixed empty search_path and are intended to enforce authorization internally, but the advisor warning remains. They require negative authorization tests and continued review. The warning must not be represented as a passed check.
+These RPCs are intentionally exposed to authenticated callers and perform explicit authorization checks, use a fixed empty search_path, and restrict anonymous execution. The advisor warnings remain and require continued review; they are not being reported as passed.
 
-## Code changes
+## Dependency audit
 
-- Added app/protected/super-admin/page.tsx with account/role management and recent activity views.
-- Added app/protected/super-admin/actions.ts, which re-checks the Super Admin role before invoking the role-management RPC.
-- Updated lib/academy/auth.ts to invoke the guarded bootstrap for the designated email and permit the super_admin role through the server-side role guard.
-- Updated components/login-form.tsx to verify the bootstrap result after successful login for the designated email.
-- Updated protected navigation and dashboard module visibility for the Super Admin.
-- Added SQL migration files for recent database hardening changes under supabase/migrations/.\n- Added a Super Admin TOTP enrollment/verification route and confirmation before role changes.\n- Wired QR attendance creation and student check-in; the raw token is not stored in the database.
+- CI: lint passed, TypeScript passed, production build passed.
+- Production dependency audit: `npm audit --omit=dev --audit-level=high` reported **0 vulnerabilities** on the CI-resolved dependency tree.
+- Full dependency audit: **10 development-tooling findings remain (3 moderate, 7 high)**. The main high-severity advisory is [GHSA-vfj7-8cjw-p6xm for braces](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), affecting published versions through 3.0.3; the advisory currently lists no patched upstream version. The moderate [GHSA-rj75-hqrm-r3gf for postcss-selector-parser](https://github.com/advisories/GHSA-rj75-hqrm-r3gf) affects versions below 7.1.6. These are in the development/build tooling tree, not the production dependency audit. Do not claim the full dependency tree is vulnerability-free.
+- The ESLint configuration was migrated to the native Next.js 16 flat configuration described in the [official Next.js ESLint documentation](https://nextjs.org/docs/app/api-reference/config/eslint).
 
-## Important limitations and unverified risks
+## Code and migration changes
 
-- **Super Admin account:** the designated account was not present at the time of checking; no Super Admin profile exists yet.
-- **Failed login history:** not implemented as a trustworthy audit event. Use supported Supabase Auth logs/hooks or a secure log drain. Do not trust a browser-generated event as proof of a failed login.
-- **MFA:** a TOTP enrollment/verification route and server-side AAL2 requirement for Super Admin operations have been implemented in code, but the end-to-end flow has not yet been built or tested against a real Super Admin account.
-- **BAC/IDOR:** RLS is enabled, but every endpoint/object-ownership policy has not yet been covered by negative tests with separate student, teacher, admin, and Super Admin identities.
-- **Build/deployment:** the latest deployment build is still in progress. The latest GitHub changes must be built and tested before they can be considered live.
-- **Migration history:** the repository did not previously contain the full set of migrations for the existing database. Recent hardening migrations are now tracked, but the complete database bootstrap/migration history still needs reconciliation before claiming reproducible fresh-project setup. The latest auth-trigger migration file now matches the recorded remote version; the older database baseline migrations still need reconciliation before a fresh-project setup can be considered reproducible.
-- **Email:** Resend has three draft templates but no configured sending domain; production email sending is not ready.
-- **Figma:** the existing design file was inspected, but the Starter-plan MCP call limit prevented further edits in this run.
+- Added app/protected/super-admin/page.tsx and app/protected/super-admin/actions.ts for the protected user/role and audit console.
+- Added components/super-admin/mfa-gate.tsx and app/auth/mfa/page.tsx for TOTP setup/verification.
+- Added components/super-admin/role-change-form.tsx to confirm sensitive role changes.
+- Updated lib/academy/auth.ts to enforce Super Admin AAL2 on protected server actions.
+- Added successful-login audit trigger, restricted role-management RPCs, and teacher-class attendance RLS policies.
+- Wired QR session creation and authenticated student check-in.
+- Added SQL migration files for recent hardening changes under supabase/migrations/.
+- Added GitHub Actions CI for lint, type-check, production build, and dependency audits.
+
+## Remaining risks and manual requirements
+
+- **Super Admin account:** the designated account is not present in Supabase yet; current check returned zero Super Admin profiles.
+- **Failed login history:** not implemented as a trustworthy audit event. It requires a supported Supabase Auth hook/log drain. Browser-generated failure events are not proof of an actual failed login.
+- **MFA and QR tests:** both flows still need end-to-end verification with real test accounts and negative cases.
+- **Migration history:** the repository now tracks recent security migrations, but the original database baseline migrations are still absent from the repository. A fresh-project bootstrap is not yet reproducible from this repo alone.
+- **Deployment:** the latest code/lockfile must be deployed and verified on Vercel. Earlier deployments failed before the lint/type fixes; do not treat those as the current live build.
+- **Password security:** enable leaked-password protection manually in Supabase Dashboard.
+- **Email:** Resend has three draft templates but no verified sending domain. Live transactional email is not ready until a domain is owned and verified.
+- **Figma:** the existing design file was inspected, but the Figma Starter-plan tool limit prevented edits during this run.
 
 ## Required next verification
 
-1. Enable Supabase leaked-password protection.
-2. Register and verify the designated Super Admin account.
-3. Confirm the bootstrap assigns the role only to that exact verified identity.
-4. Test denied RPC calls as anonymous, student, teacher, and ordinary admin users.
-5. Test cross-student and cross-teacher object IDs across all Server Actions, Route Handlers, and exposed RPCs.
-6. Add and run Super Admin MFA/AAL enforcement tests.
-7. Configure and validate trusted failed-auth logging.
-8. Run lint, type checking, tests, dependency audit, and production build on the latest commit.
-9. Verify the resulting Vercel deployment and test the deployed application.
-10. Configure a verified Resend sending domain before enabling transactional email.
+1. Register and verify imrankhanshahaniofficial@gmail.com.
+2. Confirm the auth trigger assigns Super Admin only to that exact verified identity.
+3. Complete TOTP enrollment and confirm AAL2 is required for direct RPC/Data API calls as well as app routes.
+4. Run negative tests for anonymous callers, student-to-student IDOR, teacher cross-class access, ordinary-admin role escalation, forged audit writes, invalid/expired/replayed QR tokens, and role changes.
+5. Enable leaked-password protection and configure trusted failed-auth logging.
+6. Confirm CI passes on the committed lockfile and deploy the latest commit to Vercel.
+7. Configure a verified Resend sending domain before enabling email.
+8. Reconcile the missing baseline migrations before attempting a fresh-project database setup.
 
 ## Reporting rule
 
-Do not claim “100% secure,” “unhackable,” or “zero vulnerabilities.” A passing check means only the exact check was executed and passed; untested areas remain unverified.
+Do not claim “100% secure,” “unhackable,” or “zero vulnerabilities.” Only mark a check as passed if it was executed and its result was recorded. Untested areas remain unverified.
