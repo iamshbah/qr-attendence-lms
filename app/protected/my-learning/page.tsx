@@ -1,3 +1,4 @@
+import { submitAssignment } from "@/lib/academy/actions";
 import { requireAcademyRole } from "@/lib/academy/auth";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,8 @@ export default async function MyLearningPage() {
         supabase.from("lessons").select("id,title,content,video_url,file_path,course_id,position").eq("published", true).in("course_id", courses.map((course) => course.id)).order("position", { ascending: true }),
       ])
     : [{ data: [] }, { data: [] }];
+  const { data: submissionRows } = await supabase.from("submissions").select("id,assignment_id,submitted_at,score,feedback").eq("student_id", student.id);
+  const submissions = submissionRows ?? [];
   const attendance = attendanceRows ?? [];
   const results = resultRows ?? [];
   const fees = feeRows ?? [];
@@ -81,7 +84,7 @@ export default async function MyLearningPage() {
         <div className="rounded-2xl border bg-white p-5">
           <h2 className="text-xl font-bold">My assignments</h2>
           <div className="mt-4 space-y-3">
-            {assignments.length ? assignments.map((assignment) => <article key={assignment.id} className="rounded-xl border p-4"><h3 className="font-semibold">{assignment.title}</h3><p className="mt-1 text-sm text-slate-600">{assignment.instructions || "Follow the instructions given by your teacher."}</p><p className="mt-2 text-xs text-slate-500">Due: {assignment.due_at ? new Date(assignment.due_at).toLocaleString() : "Not specified"}</p></article>) : <p className="text-sm text-slate-500">No published assignments are available yet.</p>}
+            {assignments.length ? assignments.map((assignment) => { const submission = submissions.find((item) => item.assignment_id === assignment.id); return <article key={assignment.id} className="rounded-xl border p-4"><h3 className="font-semibold">{assignment.title}</h3><p className="mt-1 text-sm text-slate-600">{assignment.instructions || "Follow the instructions given by your teacher."}</p><p className="mt-2 text-xs text-slate-500">Due: {assignment.due_at ? new Date(assignment.due_at).toLocaleString() : "Not specified"}</p>{submission ? <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900"><p className="font-semibold">Submitted · {new Date(submission.submitted_at).toLocaleString()}</p>{submission.score !== null && <p className="mt-1">Score: {submission.score}</p>}{submission.feedback && <p className="mt-1">Feedback: {submission.feedback}</p>}</div> : <form action={submitAssignment} className="mt-4 space-y-2"><input type="hidden" name="assignment_id" value={assignment.id} /><label className="block text-sm font-medium" htmlFor={"answer-" + assignment.id}>Your answer</label><textarea id={"answer-" + assignment.id} name="answer_text" required minLength={2} rows={4} className="w-full rounded-lg border p-3 text-sm" placeholder="Write your answer here..." /><button className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white">Submit assignment</button></form>}</article>; }) : <p className="text-sm text-slate-500">No published assignments are available yet.</p>}
           </div>
         </div>
         <div className="rounded-2xl border bg-white p-5">
