@@ -34,6 +34,14 @@ The designated Super Admin account does not yet exist in Supabase, so the actual
 - **Browser security headers:** X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS, and a Permissions-Policy were added.
 - These changes are implemented but **have not been end-to-end tested** with separate real student, teacher, admin, and Super Admin accounts. Do not treat the authorization matrix as fully verified until those negative tests pass.
 
+## ID card QR scanner and role workflow update (2026-10-14)
+
+- Added a print-ready student ID card generator at /protected/id-cards. Its QR payload contains only the student code, not personal details.
+- Added a staff camera scanner on the attendance page using the existing html5-qrcode package. The server action validates the authenticated staff role, selected active/unexpired session, teacher-to-class assignment, active student, class match, and the unique per-session attendance constraint before writing a QR-sourced record.
+- Added navigation/dashboard entries for staff ID-card generation and students' own ID card.
+- Static ID QR codes can be photographed/copied; staff must visually verify the cardholder. This is not biometric proof. Existing short-lived session QR self-check-in remains available.
+- These additions are committed as code but have **not** yet passed CI or real-browser/device tests. Do not treat them as production-verified until the new CI run and end-to-end tests pass.
+
 ## Current Supabase Security Advisor findings
 
 1. **Leaked-password protection disabled:** enable it in Supabase Dashboard → Authentication → Password Security.

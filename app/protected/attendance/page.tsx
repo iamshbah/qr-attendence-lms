@@ -1,8 +1,9 @@
-﻿import { requireAcademyRole } from "@/lib/academy/auth";
+import { requireAcademyRole } from "@/lib/academy/auth";
 import { createAttendanceSession, markManualAttendance } from "@/lib/academy/actions";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import { toDataURL } from "qrcode";
+import { StudentIdScanner } from "@/components/attendance/student-id-scanner";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,10 @@ export default async function AttendancePage({
     <header><h1 className="text-3xl font-bold">Attendance</h1><p className="mt-2 text-slate-500">Create sessions, share short-lived QR codes, and record manual attendance.</p></header>
     {params.saved && <p className="rounded-lg bg-green-50 p-3 text-green-800">Attendance data saved.</p>}
     {params.error && <p className="rounded-lg bg-red-50 p-3 text-red-800">Action failed. Check the session, class, duplicate entry and RLS permissions.</p>}
+    <StudentIdScanner sessions={(sessions ?? []).filter((s) => s.active).map((s) => {
+      const cls = (classes ?? []).find((c) => c.id === s.class_id);
+      return { id: s.id, label: String(cls?.name ?? "Class") + " " + String(cls?.section ?? "") + " · " + s.session_date + " · expires " + new Date(s.expires_at).toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit" }) };
+    })} />
     {params.session && !qrDataUrl && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">QR token is not available in this browser session, or the session has expired. Create a new attendance session to generate a fresh QR code.</p>}
     {qrDataUrl && selectedSession && (
       <section className="flex flex-col gap-4 rounded-2xl border border-blue-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">

@@ -6,6 +6,7 @@ import { getAcademyContext } from "@/lib/academy/auth";
 const adminLinks = [
   ["Dashboard", "/protected"],
   ["Students", "/protected/students"],
+  ["ID Cards", "/protected/id-cards"],
   ["Attendance", "/protected/attendance"],
   ["Fees", "/protected/fees"],
   ["Courses", "/protected/courses"],
@@ -22,6 +23,7 @@ const teacherLinks = [
 ];
 const studentLinks = [
   ["Dashboard", "/protected"],
+  ["My ID Card", "/protected/id-cards"],
   ["My Learning", "/protected/my-learning"],
 ];
 

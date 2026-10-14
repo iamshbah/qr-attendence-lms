@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Users, QrCode, Wallet, GraduationCap,
+  Users, QrCode, Wallet, GraduationCap, IdCard,
   BookOpen, ClipboardList, ShieldCheck, Languages, ArrowRight, Library
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 
 const modules = [
   { title: "Students & Admissions", urdu: "Students ka record aur naye admissions", icon: Users, href: "/protected/students", roles: ["admin", "teacher"] },
+  { title: "Student ID Cards", urdu: "QR ID cards generate aur print karein", icon: IdCard, href: "/protected/id-cards", roles: ["admin", "teacher"] },
   { title: "QR Attendance", urdu: "Class attendance sessions aur hazri records", icon: QrCode, href: "/protected/attendance", roles: ["admin", "teacher"] },
+  { title: "My ID Card", urdu: "Apna student QR ID card dekhein aur print karein", icon: IdCard, href: "/protected/id-cards", roles: ["student"] },
   { title: "Fees & Receipts", urdu: "Fees, dues aur receipts manage karein", icon: Wallet, href: "/protected/fees", roles: ["admin"] },
   { title: "Exams & Results", urdu: "Imtihan, marks aur result management", icon: GraduationCap, href: "/protected/exams", roles: ["admin", "teacher"] },
   { title: "Courses & Lessons", urdu: "Online lessons, videos aur notes", icon: BookOpen, href: "/protected/courses", roles: ["admin", "teacher"] },
