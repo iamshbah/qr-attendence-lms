@@ -47,7 +47,7 @@ These functions use a fixed empty search_path and are intended to enforce author
 - Updated lib/academy/auth.ts to invoke the guarded bootstrap for the designated email and permit the super_admin role through the server-side role guard.
 - Updated components/login-form.tsx to verify the bootstrap result after successful login for the designated email.
 - Updated protected navigation and dashboard module visibility for the Super Admin.
-- Added SQL migration files for recent database hardening changes under supabase/migrations/.
+- Added SQL migration files for recent database hardening changes under supabase/migrations/.\n- Added a Super Admin TOTP enrollment/verification route and confirmation before role changes.\n- Wired QR attendance creation and student check-in; the raw token is not stored in the database.
 
 ## Important limitations and unverified risks
 
