@@ -35,5 +35,12 @@ export async function requireAcademyRole(allowed: string[]) {
   if (context.role !== "super_admin" && !allowed.includes(context.role)) {
     redirect("/protected?error=forbidden");
   }
+  if (context.role === "super_admin") {
+    const { data: assurance, error: assuranceError } =
+      await context.supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError || assurance?.currentLevel !== "aal2") {
+      redirect("/auth/mfa?next=/protected/super-admin");
+    }
+  }
   return context;
 }
