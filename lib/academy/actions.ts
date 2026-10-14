@@ -3,6 +3,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { requireAcademyRole } from "@/lib/academy/auth";
 
 function value(form: FormData, key: string) {
@@ -40,33 +41,66 @@ export async function createStudent(form: FormData) {
 }
 
 export async function createAttendanceSession(form: FormData) {
-  const { supabase, user } = await requireAcademyRole(["admin", "teacher"]);
+  const { supabase, user, role } = await requireAcademyRole(["admin", "teacher"]);
   const class_id = value(form, "class_id");
   const session_date = value(form, "session_date");
   const expires_at = value(form, "expires_at");
 
-  if (!class_id || !session_date || !expires_at) {
+  if (!class_id || !session_date || !/^\\d{4}-\\d{2}-\\d{2}$/.test(session_date) ||
+      !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$/.test(expires_at)) {
     fail("/protected/attendance", "required_fields");
+  }
+
+  const expiry = new Date(`${expires_at}:00+05:00`);
+  const expiryMs = expiry.getTime();
+  if (!Number.isFinite(expiryMs) || expiryMs <= Date.now() ||
+      expiryMs > Date.now() + 24 * 60 * 60 * 1000) {
+    fail("/protected/attendance", "expiry_must_be_within_24_hours");
+  }
+
+  const { data: selectedClass, error: classError } = await supabase
+    .from("classes")
+    .select("id,teacher_id")
+    .eq("id", class_id)
+    .maybeSingle();
+
+  if (classError || !selectedClass ||
+      (role === "teacher" && selectedClass.teacher_id !== user.id)) {
+    fail("/protected/attendance", "class_not_assigned");
   }
 
   const token = randomUUID() + randomUUID();
   const token_hash = createHash("sha256").update(token).digest("hex");
-  const { error } = await supabase.from("attendance_sessions").insert({
-    class_id,
-    session_date,
-    starts_at: new Date().toISOString(),
-    expires_at: new Date(expires_at).toISOString(),
-    token_hash,
-    active: true,
-    created_by: user.id,
+  const { data: session, error } = await supabase.from("attendance_sessions")
+    .insert({
+      class_id,
+      session_date,
+      starts_at: new Date().toISOString(),
+      expires_at: expiry.toISOString(),
+      token_hash,
+      active: true,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error || !session) fail("/protected/attendance", "session_failed");
+
+  const cookieStore = await cookies();
+  cookieStore.set(`qr-attendance-${session.id}`, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/protected/attendance",
+    expires: expiry,
   });
 
-  if (error) fail("/protected/attendance", "session_failed");
-  done("/protected/attendance");
+  revalidatePath("/protected/attendance");
+  redirect(`/protected/attendance?session=${encodeURIComponent(session.id)}&saved=1`);
 }
 
 export async function markManualAttendance(form: FormData) {
-  const { supabase, user } = await requireAcademyRole(["admin", "teacher"]);
+  const { supabase, user, role } = await requireAcademyRole(["admin", "teacher"]);
   const session_id = value(form, "session_id");
   const student_id = value(form, "student_id");
   const status = value(form, "status");
@@ -85,6 +119,18 @@ export async function markManualAttendance(form: FormData) {
   if (sessionError || !session || !session.active ||
       new Date(session.expires_at).getTime() < Date.now()) {
     fail("/protected/attendance", "session_inactive");
+  }
+
+  if (role === "teacher") {
+    const { data: assignedClass, error: assignedClassError } = await supabase
+      .from("classes")
+      .select("id")
+      .eq("id", session.class_id)
+      .eq("teacher_id", user.id)
+      .maybeSingle();
+    if (assignedClassError || !assignedClass) {
+      fail("/protected/attendance", "class_not_assigned");
+    }
   }
 
   const { data: student, error: studentError } = await supabase
