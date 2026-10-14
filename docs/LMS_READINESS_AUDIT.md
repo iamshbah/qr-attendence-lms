@@ -7,7 +7,7 @@
 
 ## Executive verdict
 
-The project has a real Next.js/Supabase LMS foundation, role-aware routes, student learning pages, course/lesson/assignment/exam/result/fee modules, QR attendance sessions, RLS protections and a Super Admin security console. A deployment had previously reached Vercel READY and CI passed lint, TypeScript, production build and the production dependency audit.
+The project has a real Next.js/Supabase LMS foundation, role-aware routes, student learning pages, course/lesson/assignment/exam/result/fee modules, QR attendance sessions, RLS protections and a Super Admin security console. A deployment had previously reached Vercel READY. The latest code CI run on commit 7c6b7da passed lint, TypeScript type-check, production build and production dependency audit.
 
 However, this audit found only one Auth user/profile in the live database and no students, classes, courses, attendance sessions or attendance records. The live app could not be fetched through the connected Vercel integration because its project/team scope returned 403. The designated Super Admin identity is not yet set up and MFA has not been tested end-to-end. Therefore the LMS is **not yet ready for a real academy rollout**.
 
@@ -39,7 +39,7 @@ However, this audit found only one Auth user/profile in the live database and no
 - All 13 public tables have RLS enabled.
 - Security Advisor still reports leaked-password protection disabled and three authenticated SECURITY DEFINER RPC warnings; review each guarded RPC rather than ignoring warnings.
 - Performance Advisor reports one RLS init-plan warning and multiple permissive policies on several tables, plus unused-index informational findings.
-- CI previously passed lint, TypeScript, production build and production dependency audit (0 production dependency findings). Full audit still reports 10 development/build-tooling findings (3 moderate, 7 high).
+- Latest CI on commit 7c6b7da passed lint, TypeScript type-check, production build and production dependency audit (0 production dependency findings). Full audit still reports 10 development/build-tooling findings (3 moderate, 7 high).
 - Vercel integration denied live fetch/deployment inspection with 403 because the connected scope is not authorized for the target project/team. This is not evidence that the site itself is down.
 
 ## Required before real rollout
