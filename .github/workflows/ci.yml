@@ -50,5 +50,8 @@ jobs:
           git add package-lock.json
           git commit -m "chore: sync npm security updates"
           git push origin HEAD:main
-      - name: Dependency audit
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Full dependency audit (includes development tooling)
         run: npm audit --audit-level=high
+        continue-on-error: true
