@@ -8,7 +8,7 @@
 
 The current code includes a Super Admin security console, a private verified-email bootstrap trigger, TOTP enrollment and AAL2 checks, protected user/role management, successful-login auditing, class-scoped attendance policies, and a QR check-in flow.
 
-The most recent full CI run passed lint, TypeScript type-checking, and the production build. The production dependency audit reported zero vulnerabilities. The full dependency audit still reports development-tooling advisories described below. The resulting dependency lockfile was committed; the committed tree must be rechecked by CI and deployed to Vercel before it is considered live.
+The most recent full CI run passed lint, TypeScript type-checking, and the production build. The production dependency audit reported zero vulnerabilities. The full dependency audit still reports development-tooling advisories described below. The dependency lockfile is committed, and Vercel reports the latest deployment as READY with the stable alias assigned.
 
 The designated Super Admin account does not yet exist in Supabase, so the actual Super Admin onboarding/MFA flow has not been tested with that identity.
 
@@ -68,8 +68,8 @@ These RPCs are intentionally exposed to authenticated callers and perform explic
 - **Failed login history:** not implemented as a trustworthy audit event. It requires a supported Supabase Auth hook/log drain. Browser-generated failure events are not proof of an actual failed login.
 - **MFA and QR tests:** both flows still need end-to-end verification with real test accounts and negative cases.
 - **Migration history:** the repository now tracks recent security migrations, but the original database baseline migrations are still absent from the repository. A fresh-project bootstrap is not yet reproducible from this repo alone.
-- **Deployment:** the latest code/lockfile must be deployed and verified on Vercel. Earlier deployments failed before the lint/type fixes; do not treat those as the current live build.
-- **Password security:** enable leaked-password protection manually in Supabase Dashboard.
+- **Deployment:** Vercel reports the latest deployment as READY at https://digitalice-one.vercel.app. Earlier deployments failed before the lint/type fixes; those have been superseded. Browser-level smoke testing and real-account authorization tests remain pending.
+- **Password security:** enable leaked-password protection manually in Supabase Dashboard. A tailored Content-Security-Policy has not been added because it must be validated against Next.js scripts and the app's external resources.
 - **Email:** Resend has three draft templates but no verified sending domain. Live transactional email is not ready until a domain is owned and verified.
 - **Figma:** the existing design file was inspected, but the Figma Starter-plan tool limit prevented edits during this run.
 
@@ -80,7 +80,7 @@ These RPCs are intentionally exposed to authenticated callers and perform explic
 3. Complete TOTP enrollment and confirm AAL2 is required for direct RPC/Data API calls as well as app routes.
 4. Run negative tests for anonymous callers, student-to-student IDOR, teacher cross-class access, ordinary-admin role escalation, forged audit writes, invalid/expired/replayed QR tokens, and role changes.
 5. Enable leaked-password protection and configure trusted failed-auth logging.
-6. Confirm CI passes on the committed lockfile and deploy the latest commit to Vercel.
+6. Run browser-level smoke tests against https://digitalice-one.vercel.app and verify the live commit/alias in Vercel.
 7. Configure a verified Resend sending domain before enabling email.
 8. Reconcile the missing baseline migrations before attempting a fresh-project database setup.
 
