@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "loading" | "enroll" | "challenge";
@@ -155,7 +156,7 @@ export function SuperAdminMfaGate({ nextPath }: { nextPath: string }) {
 
         {mode === "enroll" && qrImage && (
           <div className="mt-6 rounded-xl border border-slate-200 p-4">
-            <img src={qrImage} alt="Authenticator setup QR code" className="mx-auto h-48 w-48" />
+            <Image src={qrImage} alt="Authenticator setup QR code" width={192} height={192} unoptimized className="mx-auto h-48 w-48" />
             <p className="mt-4 text-xs font-semibold text-slate-700">Manual setup key</p>
             <code className="mt-1 block break-all rounded-lg bg-slate-100 p-3 text-sm text-slate-900">{secret}</code>
           </div>
