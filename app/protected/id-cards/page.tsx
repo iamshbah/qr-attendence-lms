@@ -30,7 +30,7 @@ export default async function StudentIdCardsPage() {
       <header className={styles.noPrint + " flex flex-wrap items-end justify-between gap-3"}>
         <div>
           <h1 className="text-3xl font-bold">{role === "student" ? "My Student ID Card" : "Student ID Card Generator"}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Generate printable student cards with QR codes for the teacher's fast attendance scanner. The QR contains the student code only.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Generate printable student cards with QR codes for the teacher&apos;s fast attendance scanner. The QR contains the student code only.</p>
         </div>
         {students.length > 0 && <PrintButton label={role === "student" ? "Print my ID card" : "Print all cards"} />}
       </header>
@@ -65,7 +65,7 @@ export default async function StudentIdCardsPage() {
           ))}
         </section>
       )}
-      <p className={styles.noPrint + " text-xs leading-5 text-slate-500"}>Security note: a static card QR can be photographed or copied. The scanner requires an authenticated teacher/admin and an active session for the student's own class; staff should visually verify the person holding the card.</p>
+      <p className={styles.noPrint + " text-xs leading-5 text-slate-500"}>Security note: a static card QR can be photographed or copied. The scanner requires an authenticated teacher/admin and an active session for the student&apos;s own class; staff should visually verify the person holding the card.</p>
     </div>
   );
 }

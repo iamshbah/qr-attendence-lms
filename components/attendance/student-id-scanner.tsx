@@ -69,7 +69,7 @@ export function StudentIdScanner({ sessions }: { sessions: SessionOption[] }) {
         () => undefined,
       );
       setScanning(true);
-      setMessage("Camera ready. Scan each student's physical ID card QR.");
+      setMessage("Camera ready. Scan each student&apos;s physical ID card QR.");
     } catch {
       scannerRef.current = null;
       try { scanner.clear(); } catch { /* no active camera surface */ }
