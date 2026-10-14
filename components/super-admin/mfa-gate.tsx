@@ -59,7 +59,7 @@ export function SuperAdminMfaGate({ nextPath }: { nextPath: string }) {
         return;
       }
 
-      const pendingFactor = factorData.totp?.find((factor) => factor.status === "unverified");
+      const pendingFactor = factorData.all?.find((factor) => factor.factor_type === "totp" && factor.status === "unverified");
       if (pendingFactor) {
         const { error: removeError } = await supabase.auth.mfa.unenroll({ factorId: pendingFactor.id });
         if (removeError) {
