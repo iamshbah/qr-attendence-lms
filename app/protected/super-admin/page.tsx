@@ -1,5 +1,6 @@
 import { requireAcademyRole } from "@/lib/academy/auth";
 import { setUserRole } from "./actions";
+import { RoleChangeForm } from "@/components/super-admin/role-change-form";
 
 export const dynamic = "force-dynamic";
 
@@ -120,18 +121,7 @@ export default async function SuperAdminPage({
                       {user.role === "super_admin" ? (
                         <span className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">Super Admin — protected</span>
                       ) : (
-                        <form action={setUserRole} className="flex min-w-[270px] items-center gap-2">
-                          <input type="hidden" name="user_id" value={user.user_id} />
-                          <label className="sr-only" htmlFor={`role-${user.user_id}`}>Role for {user.email}</label>
-                          <select id={`role-${user.user_id}`} name="role" defaultValue={user.role} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2">
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                          <button type="submit" className="rounded-lg bg-blue-900 px-3 py-2 font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
-                            Save
-                          </button>
-                        </form>
+                        <RoleChangeForm userId={user.user_id} email={user.email} currentRole={user.role} action={setUserRole} />
                       )}
                     </td>
                   </tr>
