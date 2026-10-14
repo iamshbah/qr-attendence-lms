@@ -9,7 +9,7 @@ export default async function AttendancePage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string; session?: string }>;
 }) {
-  const { supabase, role } = await requireAcademyRole(["admin", "teacher"]);
+  const { supabase } = await requireAcademyRole(["admin", "teacher"]);
   const params = await searchParams;
   const [{ data: classes }, { data: sessions }, { data: students }, { data: records }] = await Promise.all([
     supabase.from("classes").select("id,name,section"),
