@@ -1,9 +1,8 @@
-﻿import { redirect } from "next/navigation";
 import {
   Users, QrCode, Wallet, GraduationCap,
   BookOpen, ClipboardList, ShieldCheck, Languages
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getAcademyContext } from "@/lib/academy/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,18 +16,7 @@ const modules = [
 ];
 
 export default async function ProtectedPage() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) redirect("/auth/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const role = profile?.role ?? "student";
+  const { role, fullName } = await getAcademyContext();
   const roleLabel =
     role === "admin" ? "Admin" :
     role === "teacher" ? "Teacher" : "Student";
@@ -41,7 +29,7 @@ export default async function ProtectedPage() {
           Academy Management System
         </div>
         <h1 className="mt-5 text-3xl font-bold sm:text-4xl">
-          Assalam-o-Alaikum, {profile?.full_name || "Welcome"}!
+          Assalam-o-Alaikum, {fullName || "Welcome"}!
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
           Attendance, admissions, fees, exams aur online learning —
