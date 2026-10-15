@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAcademyRoleAllowed } from "@/lib/academy/attendance-validation.mjs";
 
 export async function getAcademyContext() {
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export async function getAcademyContext() {
 
 export async function requireAcademyRole(allowed: string[]) {
   const context = await getAcademyContext();
-  if (!allowed.includes(context.role)) {
+  if (!isAcademyRoleAllowed(context.role, allowed)) {
     redirect("/protected?error=forbidden");
   }
   return context;

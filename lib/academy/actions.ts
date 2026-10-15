@@ -4,6 +4,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAcademyRole } from "@/lib/academy/auth";
+import {
+  isAttendanceSessionInputValid,
+  isDateInputValid,
+  isDateTimeInputValid,
+  isMonthInputValid,
+  isUniqueConstraintViolation,
+} from "@/lib/academy/attendance-validation.mjs";
 
 function value(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -21,7 +28,11 @@ function done(path: string): never {
 export async function createStudent(form: FormData) {
   const { supabase } = await requireAcademyRole(["admin"]);
   const full_name = value(form, "full_name");
+  const admission_date = value(form, "admission_date");
   if (!full_name) fail("/protected/students", "name_required");
+  if (admission_date && !isDateInputValid(admission_date)) {
+    fail("/protected/students", "invalid_admission_date");
+  }
 
   const { error } = await supabase.from("students").insert({
     student_code: `STU-${randomUUID().slice(0, 8).toUpperCase()}`,
@@ -31,7 +42,7 @@ export async function createStudent(form: FormData) {
     guardian_phone: value(form, "guardian_phone") || null,
     address: value(form, "address") || null,
     class_id: value(form, "class_id") || null,
-    admission_date: value(form, "admission_date") || new Date().toISOString().slice(0, 10),
+    admission_date: admission_date || new Date().toISOString().slice(0, 10),
     active: true,
   });
 
@@ -44,10 +55,13 @@ export async function createAttendanceSession(form: FormData) {
   const class_id = value(form, "class_id");
   const session_date = value(form, "session_date");
   const expires_at = value(form, "expires_at");
+  const now = Date.now();
 
-  if (!class_id || !session_date || !expires_at) {
+  if (!isAttendanceSessionInputValid(class_id, session_date, expires_at, now)) {
     fail("/protected/attendance", "required_fields");
   }
+
+  const expiry = new Date(`${expires_at}:00+05:00`);
 
   const token = randomUUID() + randomUUID();
   const token_hash = createHash("sha256").update(token).digest("hex");
@@ -55,7 +69,7 @@ export async function createAttendanceSession(form: FormData) {
     class_id,
     session_date,
     starts_at: new Date().toISOString(),
-    expires_at: new Date(expires_at).toISOString(),
+    expires_at: expiry.toISOString(),
     token_hash,
     active: true,
     created_by: user.id,
@@ -83,7 +97,8 @@ export async function markManualAttendance(form: FormData) {
     .maybeSingle();
 
   if (sessionError || !session || !session.active ||
-      new Date(session.expires_at).getTime() < Date.now()) {
+      !Number.isFinite(Date.parse(session.expires_at)) ||
+      Date.parse(session.expires_at) <= Date.now()) {
     fail("/protected/attendance", "session_inactive");
   }
 
@@ -107,6 +122,9 @@ export async function markManualAttendance(form: FormData) {
     device_event_id: randomUUID(),
   });
 
+  if (isUniqueConstraintViolation(error?.code)) {
+    fail("/protected/attendance", "attendance_already_marked");
+  }
   if (error) fail("/protected/attendance", "attendance_save_failed");
   done("/protected/attendance");
 }
@@ -120,8 +138,12 @@ export async function createFee(form: FormData) {
   const paid = value(form, "paid") === "on";
 
   if (!student_id || !Number.isFinite(amount) || amount <= 0 ||
-      !month || !due_date) {
+      !isMonthInputValid(month) || !isDateInputValid(due_date)) {
     fail("/protected/fees", "invalid_fields");
+  }
+  const payment_method = value(form, "payment_method");
+  if (paid && !["cash", "bank", "other"].includes(payment_method)) {
+    fail("/protected/fees", "invalid_payment_method");
   }
 
   const { error } = await supabase.from("fee_records").insert({
@@ -130,7 +152,7 @@ export async function createFee(form: FormData) {
     fee_month: `${month}-01`,
     due_date,
     paid_at: paid ? new Date().toISOString() : null,
-    payment_method: paid ? (value(form, "payment_method") || "cash") : null,
+    payment_method: paid ? payment_method : null,
     receipt_number: paid ? `RCT-${randomUUID().slice(0, 8).toUpperCase()}` : null,
     notes: value(form, "notes") || null,
     recorded_by: user.id,
@@ -168,11 +190,14 @@ export async function createAssignment(form: FormData) {
   }
 
   const due = value(form, "due_at");
+  if (due && !isDateTimeInputValid(due)) {
+    fail("/protected/assignments", "invalid_due_date");
+  }
   const { error } = await supabase.from("assignments").insert({
     course_id,
     title,
     instructions: value(form, "instructions") || null,
-    due_at: due ? new Date(due).toISOString() : null,
+    due_at: due ? new Date(`${due}:00+05:00`).toISOString() : null,
     max_score,
     published: false,
   });
@@ -189,6 +214,7 @@ export async function createExam(form: FormData) {
   const total_marks = Number(value(form, "total_marks"));
 
   if (!title || !class_id || !exam_date ||
+      !isDateInputValid(exam_date) ||
       !Number.isFinite(total_marks) || total_marks <= 0) {
     fail("/protected/exams", "invalid_fields");
   }
